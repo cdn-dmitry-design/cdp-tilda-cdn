@@ -46,7 +46,32 @@ function catalogCss() {
   return read('cdp-catalog-tilda.css') + '\n' + read('cdp-catalog.css');
 }
 
-function makeLoader({ name, cssFile, appFile, injectHtml }) {
+function makeLoader({ name, cssFile, appFile, injectHtml, prefetchProd }) {
+  const prefetchBlock = prefetchProd
+    ? `
+  function hint(rel, href, asType) {
+    if (document.querySelector('link[href="' + href + '"]')) return;
+    var l = document.createElement('link');
+    l.rel = rel;
+    l.href = href;
+    if (asType) l.as = asType;
+    // только греем кэш — на каталоге стили карточки не подключаем как stylesheet
+    if (rel === 'preload') l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+  function warmProductAssets() {
+    if (document.documentElement.__cdpProdPrefetch) return;
+    document.documentElement.__cdpProdPrefetch = true;
+    // CSS карточки — приоритетнее: без него страница «голая»
+    hint('preload', base + 'prod.css', 'style');
+    hint('prefetch', base + 'prod.embed.js');
+    hint('prefetch', base + 'prod.js');
+  }
+  if ('requestIdleCallback' in window) requestIdleCallback(warmProductAssets, { timeout: 2500 });
+  else setTimeout(warmProductAssets, 1200);
+`
+    : '';
+
   return `/*! CDP ${name} embed — loads CSS/JS from same folder as this file */
 (function () {
   if (document.documentElement.__cdpEmbed_${name}) return;
@@ -83,11 +108,15 @@ function makeLoader({ name, cssFile, appFile, injectHtml }) {
     (script.parentNode || document.body).appendChild(s);
   }
 
-  var pre = document.createElement('link');
-  pre.rel = 'preconnect';
-  pre.href = 'https://store.tildaapi.com';
-  pre.crossOrigin = 'anonymous';
-  document.head.appendChild(pre);
+  function preconnect(href) {
+    var l = document.createElement('link');
+    l.rel = 'preconnect';
+    l.href = href;
+    l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+  preconnect('https://store.tildaapi.com');
+  preconnect('https://cdn.jsdelivr.net');
 
   loadCss(base + ${jsString(cssFile)});
 
@@ -109,7 +138,7 @@ function makeLoader({ name, cssFile, appFile, injectHtml }) {
   }
 
   loadJs(base + ${jsString(appFile)});
-})();
+${prefetchBlock}})();
 `;
 }
 
@@ -134,7 +163,8 @@ write(
     name: 'catalog',
     cssFile: 'catalog.css',
     appFile: 'catalog.js',
-    injectHtml: catalogHtml
+    injectHtml: catalogHtml,
+    prefetchProd: true
   })
 );
 
@@ -144,46 +174,35 @@ write(
     name: 'prod',
     cssFile: 'prod.css',
     appFile: 'prod.js',
-    injectHtml: prodShell
+    injectHtml: prodShell,
+    prefetchProd: false
   })
 );
 
 const VERSION = 'main';
-const PLACEHOLDER = 'YOUR_GITHUB_USER/cdp-tilda-cdn';
+const REPO = 'cdn-dmitry-design/cdp-tilda-cdn';
 
 write(
   path.join(EMBEDS, 'catalog-tilda.html'),
-  `<!-- Каталог CDP: вставить в T123 на странице /cdp -->
-<script
-  src="https://cdn.jsdelivr.net/gh/${PLACEHOLDER}@${VERSION}/dist/catalog.embed.js"
-  data-storepart="618946506333"
-  data-native-rec="3505096201"
-  data-url-prefix="/cdp"
-  data-currency="$"
-></script>
+  `<!-- Каталог CDP: одна строка в T123 на странице /cdp -->
+<script src="https://cdn.jsdelivr.net/gh/${REPO}@${VERSION}/dist/catalog.embed.js" data-storepart="618946506333" data-native-rec="3505096201" data-url-prefix="/cdp" data-currency="$"></script>
 `
 );
 
 write(
   path.join(EMBEDS, 'prod-tilda.html'),
-  `<!-- Карточка CDP: вставить в Footer страниц товара (каталог CDP) -->
-<script
-  src="https://cdn.jsdelivr.net/gh/${PLACEHOLDER}@${VERSION}/dist/prod.embed.js"
-  data-storepart="618946506333"
-  data-url-prefix="/cdp"
-></script>
+  `<!-- Карточка CDP: одна строка в Header/Footer страниц товара -->
+<script src="https://cdn.jsdelivr.net/gh/${REPO}@${VERSION}/dist/prod.embed.js" data-storepart="618946506333" data-url-prefix="/cdp"></script>
 `
 );
 
 write(
   path.join(EMBEDS, 'README-EMBEDS.txt'),
-  `Строки для Tilda (после деплоя замените YOUR_GITHUB_USER на ваш логин GitHub)
+  `КАТАЛОГ (/cdp):
+<script src="https://cdn.jsdelivr.net/gh/${REPO}@${VERSION}/dist/catalog.embed.js" data-storepart="618946506333" data-native-rec="3505096201" data-url-prefix="/cdp" data-currency="$"></script>
 
-КАТАЛОГ (страница /cdp, блок T123):
-<script src="https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/cdp-tilda-cdn@main/dist/catalog.embed.js" data-storepart="618946506333" data-native-rec="3505096201" data-url-prefix="/cdp" data-currency="$"></script>
-
-КАРТОЧКА (Footer страниц товара каталога CDP):
-<script src="https://cdn.jsdelivr.net/gh/YOUR_GITHUB_USER/cdp-tilda-cdn@main/dist/prod.embed.js" data-storepart="618946506333" data-url-prefix="/cdp"></script>
+КАРТОЧКА (Header сайта / Footer товара):
+<script src="https://cdn.jsdelivr.net/gh/${REPO}@${VERSION}/dist/prod.embed.js" data-storepart="618946506333" data-url-prefix="/cdp"></script>
 `
 );
 

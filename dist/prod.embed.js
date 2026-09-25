@@ -34,11 +34,15 @@
     (script.parentNode || document.body).appendChild(s);
   }
 
-  var pre = document.createElement('link');
-  pre.rel = 'preconnect';
-  pre.href = 'https://store.tildaapi.com';
-  pre.crossOrigin = 'anonymous';
-  document.head.appendChild(pre);
+  function preconnect(href) {
+    var l = document.createElement('link');
+    l.rel = 'preconnect';
+    l.href = href;
+    l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+  preconnect('https://store.tildaapi.com');
+  preconnect('https://cdn.jsdelivr.net');
 
   loadCss(base + "prod.css");
 

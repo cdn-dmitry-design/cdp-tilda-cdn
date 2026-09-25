@@ -34,11 +34,15 @@
     (script.parentNode || document.body).appendChild(s);
   }
 
-  var pre = document.createElement('link');
-  pre.rel = 'preconnect';
-  pre.href = 'https://store.tildaapi.com';
-  pre.crossOrigin = 'anonymous';
-  document.head.appendChild(pre);
+  function preconnect(href) {
+    var l = document.createElement('link');
+    l.rel = 'preconnect';
+    l.href = href;
+    l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+  preconnect('https://store.tildaapi.com');
+  preconnect('https://cdn.jsdelivr.net');
 
   loadCss(base + "catalog.css");
 
@@ -60,4 +64,25 @@
   }
 
   loadJs(base + "catalog.js");
+
+  function hint(rel, href, asType) {
+    if (document.querySelector('link[href="' + href + '"]')) return;
+    var l = document.createElement('link');
+    l.rel = rel;
+    l.href = href;
+    if (asType) l.as = asType;
+    // только греем кэш — на каталоге стили карточки не подключаем как stylesheet
+    if (rel === 'preload') l.crossOrigin = 'anonymous';
+    document.head.appendChild(l);
+  }
+  function warmProductAssets() {
+    if (document.documentElement.__cdpProdPrefetch) return;
+    document.documentElement.__cdpProdPrefetch = true;
+    // CSS карточки — приоритетнее: без него страница «голая»
+    hint('preload', base + 'prod.css', 'style');
+    hint('prefetch', base + 'prod.embed.js');
+    hint('prefetch', base + 'prod.js');
+  }
+  if ('requestIdleCallback' in window) requestIdleCallback(warmProductAssets, { timeout: 2500 });
+  else setTimeout(warmProductAssets, 1200);
 })();
