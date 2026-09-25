@@ -20,13 +20,13 @@ node build.js
 **Каталог** (T123 на странице `/cdp`):
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/USER/cdp-tilda-cdn@main/dist/catalog.embed.js" data-storepart="618946506333" data-native-rec="3505096201" data-url-prefix="/cdp" data-currency="$"></script>
+<script src="https://cdn.jsdelivr.net/gh/cdn-dmitry-design/cdp-tilda-cdn@main/dist/catalog.embed.js" data-storepart="618946506333" data-native-rec="3505096201" data-url-prefix="/cdp" data-currency="$"></script>
 ```
 
 **Карточка** (Footer страниц товара каталога CDP):
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/USER/cdp-tilda-cdn@main/dist/prod.embed.js" data-storepart="618946506333" data-url-prefix="/cdp"></script>
+<script src="https://cdn.jsdelivr.net/gh/cdn-dmitry-design/cdp-tilda-cdn@main/dist/prod.embed.js" data-storepart="618946506333" data-url-prefix="/cdp"></script>
 ```
 
 Атрибуты `data-*` на `<script>` пробрасываются в `#cdpCatalog` / шаблон карточки.
