@@ -139,15 +139,41 @@
     if (document.querySelector('[data-cdp-prod-demo]')) return true;
     if (!isTproductRoute()) return false;
     var path = String(location.pathname || '');
-    var prefix = String(CFG.urlPrefix || '/cdp').trim() || '/cdp';
-    var tplEl = document.querySelector('#cdpProdPage.cdp-prod, #cdpProdPageTpl .cdp-prod');
-    if (tplEl) {
-      var fromTpl = String(tplEl.getAttribute('data-url-prefix') || '').trim();
-      if (fromTpl) prefix = fromTpl;
+
+    // Канонический URL Тильды без префикса раздела
+    if (/^\/tproduct\/\d+/i.test(path)) return true;
+
+    var prefixes = [];
+    function addPrefix(raw) {
+      var p = String(raw || '').trim();
+      if (!p) return;
+      if (p.charAt(0) !== '/') p = '/' + p;
+      p = p.replace(/\/$/, '') || '/';
+      if (prefixes.indexOf(p) < 0) prefixes.push(p);
     }
-    if (prefix.charAt(0) !== '/') prefix = '/' + prefix;
-    prefix = prefix.replace(/\/$/, '') || '/cdp';
-    return path === prefix || path.indexOf(prefix + '/') === 0;
+
+    addPrefix(CFG.urlPrefix || '/cdp');
+
+    var tpl = document.getElementById('cdpProdPageTpl');
+    var tplEl =
+      document.querySelector('#cdpProdPage.cdp-prod') ||
+      (tpl && tpl.content && tpl.content.querySelector('.cdp-prod'));
+    if (tplEl) {
+      addPrefix(tplEl.getAttribute('data-url-prefix'));
+      String(tplEl.getAttribute('data-url-aliases') || '')
+        .split(',')
+        .forEach(addPrefix);
+    }
+
+    // Страница товаров Store в Tilda часто называется /tovar — после редиректа
+    // с /cdp/tproduct/... сюда карточка тоже должна монтироваться.
+    addPrefix('/tovar');
+
+    for (var i = 0; i < prefixes.length; i++) {
+      var prefix = prefixes[i];
+      if (path === prefix || path.indexOf(prefix + '/') === 0) return true;
+    }
+    return false;
   }
 
   function qs(sel, el) {
